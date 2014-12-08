@@ -2,9 +2,9 @@ name := "geolocation"
 
 version := "1.2.0"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.4"
 
-crossScalaVersions := Seq("2.10.4", "2.11.2")
+crossScalaVersions := Seq("2.10.4", "2.11.4")
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 

@@ -1,165 +1,105 @@
 package com.edulify.modules.geolocation;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
-
-import play.libs.ws.WS;
-import play.libs.ws.WSResponse;
-
 import play.Play;
 import play.cache.Cache;
-import play.Logger.ALogger;
+
+import java.util.HashMap;
+
+import static play.Logger.ALogger;
+import static play.libs.F.Promise;
+import static play.libs.F.Promise.promise;
+import static play.libs.F.Promise.pure;
 
 public class GeolocationService {
+
+  private static final long DEFAULT_TIMEOUT = 5000l;
 
   public enum Source {
     FREEGEOIP,
     GEOIP_COUNTRY
   }
 
-  protected static boolean useCache      = Play.application().configuration().getBoolean("geolocation.useCache", true);
-  protected static int cacheTTL          = Play.application().configuration().getInt("geolocation.cacheTTL", 3600);
-  protected static boolean debug         = Play.application().configuration().getBoolean("geolocation.debug", false);
-  protected static String maxmindLicense = Play.application().configuration().getString("geolocation.maxmind_license", "");
-  public static Source source            = Source.valueOf(Play.application().configuration().getString("geolocation.source", "FREEGEOIP"));
+  protected     boolean useCache = Play.application().configuration().getBoolean("geolocation.useCache", true);
+  protected     int     cacheTTL = Play.application().configuration().getInt("geolocation.cacheTTL", 3600);
 
-  private static ALogger logger          = play.Logger.of("geolocation");
+  private final  HashMap<String, ClientInterface> clientsMap = new HashMap<>(1);
+  private static ALogger                          logger     = play.Logger.of("geolocation");
+  private static GeolocationService               instance   = new GeolocationService();
 
   public static void useCache(boolean useCache) {
-    GeolocationService.useCache = useCache;
+    instance.switchCache(useCache);
+  }
+
+  public void switchCache(boolean useCache) {
+    this.useCache = useCache;
   }
 
   public static void setCacheTime(int seconds) {
-    GeolocationService.cacheTTL = seconds;
+    instance.setCacheTimeout(seconds);
+  }
+
+  public void setCacheTimeout(int seconds) {
+    this.cacheTTL = seconds;
   }
 
   public static void setSource(Source source) {
-    GeolocationService.source = source;
+    try {
+      instance.addClient(source.toString());
+    } catch (InvalidClientException e) {
+      throw new Error(e);
+    }
   }
 
   public static void setMaxmindLicense(String license) {
-    GeolocationService.maxmindLicense = license;
+    instance.addClient(Source.GEOIP_COUNTRY.toString(), new GeoIpCountry(license));
   }
 
   public static Geolocation getGeolocation(String ip) {
-    return getGeolocation(ip, GeolocationService.source);
+    return instance.getGeolocation(ip, Play.application().configuration().getString("geolocation.source", "FREEGEOIP"))
+            .get(DEFAULT_TIMEOUT);
   }
 
   public static Geolocation getGeolocation(String ip, Source source) {
+    return instance.getGeolocation(ip, source.toString()).get(DEFAULT_TIMEOUT);
+  }
+
+  public Promise<Geolocation> getGeolocation(String ip, String key) {
+    return getGeolocation(ip, clientsMap.get(key));
+  }
+
+  public Promise<Geolocation> getGeolocation(String ip, ClientInterface source) {
     String cacheKey = String.format("geolocation-cache-%s", ip);
-    Geolocation geo = (Geolocation) Cache.get(cacheKey);
-    if (useCache && geo != null) {
-      return geo;
-    }
-
-    if (Source.FREEGEOIP.equals(source)) {
-      geo = withFreegeoip(ip);
-    }
-    if (Source.GEOIP_COUNTRY.equals(source)) {
-      geo = withGeoIpCountry(ip);
-    }
-
-    if (useCache) {
-      Cache.set(cacheKey, geo, cacheTTL);
-    }
-    return geo;
+    return promise(() -> useCache ? Cache.get(cacheKey) : null)
+            .flatMap(geo -> null == geo ? source.getGeolocation(ip) : pure((Geolocation) geo))
+            .transform(
+                    geo -> {
+                      if (useCache) {
+                        Cache.set(cacheKey, geo, cacheTTL);
+                      }
+                      return (Geolocation) geo;
+                    },
+                    ex -> {
+                      logger.error("Exception ", ex);
+                      return null;
+                    }
+            );
   }
 
-  private static Geolocation withFreegeoip(String ip) {
-    String url = String.format("http://freegeoip.net/json/%s", ip);
-    
-    try {
-      if (debug) logger.debug(String.format("requesting %s using freegeoip...", ip));
-
-      WSResponse response = WS.url(url).get().get(5000l); // Don't wait more than 5 seconds for service response.
-
-      if(response.getStatus() != 200)  return null;
-
-      String responseBody  = response.getBody();
-
-      if (debug) logger.debug(String.format("response: %s", responseBody));
-
-      if ("Not Found".equals(responseBody.trim())) {
-        throw new InvalidAddressException(String.format("Invalid address: %s", ip));
-      }
-
-      JsonNode jsonResponse = response.asJson();
-
-      JsonNode jsonIp          = jsonResponse.get("ip");
-      JsonNode jsonCountryCode = jsonResponse.get("country_code");
-      JsonNode jsonCountryName = jsonResponse.get("country_name");
-      JsonNode jsonRegionCode  = jsonResponse.get("region_code");
-      JsonNode jsonRegionName  = jsonResponse.get("region_name");
-      JsonNode jsonCity        = jsonResponse.get("city");
-      JsonNode jsonLatitude    = jsonResponse.get("latitude");
-      JsonNode jsonLongitude   = jsonResponse.get("longitude");
-
-      if (jsonIp          == null ||
-          jsonCountryCode == null ||
-          jsonCountryName == null ||
-          jsonRegionCode  == null ||
-          jsonRegionName  == null ||
-          jsonCity        == null ||
-          jsonLatitude    == null ||
-          jsonLongitude   == null) {
-        return null;
-      }
-
-      return new Geolocation(jsonIp.asText(),
-                             jsonCountryCode.asText(),
-                             jsonCountryName.asText(),
-                             jsonRegionCode.asText(),
-                             jsonRegionName.asText(),
-                             jsonCity.asText(),
-                             jsonLatitude.asDouble(),
-                             jsonLongitude.asDouble());
-    } catch (InvalidAddressException ex) {
-      throw ex;
-    } catch (Exception ex) {
-      logger.error("Exception ", ex);
+  public void addClient(String key) throws InvalidClientException {
+    if (key.equals(Source.FREEGEOIP.toString())) {
+      clientsMap.put(key, new FreeGeoIp());
+    } else if (key.equals(Source.GEOIP_COUNTRY.toString())) {
+      clientsMap.put(key, new GeoIpCountry());
+    } else {
+      throw new InvalidClientException(key);
     }
-    return null;
   }
 
-  private static Geolocation withGeoIpCountry(String ip) {
-    String url = String.format("https://geoip.maxmind.com/a?l=%s&i=%s", maxmindLicense, ip);
-    
-    try {
+  public void addClient(String key, ClientInterface client) {
+    clientsMap.put(key, client);
+  }
 
-      if (debug) logger.debug(String.format("requesting %s using geoip_country...", ip));
-
-      WSResponse response = WS.url(url).get().get(5000l); // Don't wait more than 5 seconds for service response.
-
-      if(response.getStatus() != 200)  return null;
-
-      String responseBody  = response.getBody().trim();
-      if (debug) logger.debug(String.format("response: %s", responseBody));
-
-      if ("(null),IP_NOT_FOUND".equals(responseBody)) {
-        throw new InvalidAddressException(String.format("Invalid address: %s", ip));
-      }
-
-      if (responseBody.length() == 2) {
-        return new Geolocation(ip,
-                               responseBody,
-                               null,
-                               null,
-                               null,
-                               null,
-                               0.0,
-                               0.0);
-      }
-      throw new ServiceErrorException(String.format("Unknown service response: %s", responseBody));
-    } catch (InvalidAddressException | ServiceErrorException ex) {
-      logger.error("Exception ", ex);
-      throw ex;
-    } catch (Exception ex) {
-      logger.error("Exception ", ex);
-    }
-    return null;
+  public ClientInterface removeClient(String key) {
+    return clientsMap.remove(key);
   }
 }
