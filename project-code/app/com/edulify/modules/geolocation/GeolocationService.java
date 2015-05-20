@@ -10,8 +10,8 @@ import static play.libs.F.Promise;
 import static play.libs.F.Promise.promise;
 import static play.libs.F.Promise.pure;
 
-public class GeolocationService {
-
+public class GeolocationService
+{
   private static final long DEFAULT_TIMEOUT = 5000l;
 
   public enum Source {
@@ -19,12 +19,27 @@ public class GeolocationService {
     GEOIP_COUNTRY
   }
 
-  protected     boolean useCache = Play.application().configuration().getBoolean("geolocation.useCache", true);
-  protected     int     cacheTTL = Play.application().configuration().getInt("geolocation.cacheTTL", 3600);
+  protected     boolean useCache;
+  protected     int     cacheTTL;
 
   private final  HashMap<String, ClientInterface> clientsMap = new HashMap<>(1);
-  private static ALogger                          logger     = play.Logger.of("geolocation");
-  private static GeolocationService               instance   = new GeolocationService();
+
+  private final  ALogger            logger;
+  private static GeolocationService instance = new GeolocationService();
+
+  public GeolocationService()
+  {
+    this(Play.application().configuration().getBoolean("geolocation.useCache"));
+  }
+
+  public GeolocationService(boolean useCache) {
+    this(play.Logger.of("geolocation"), useCache);
+  }
+
+  public GeolocationService(ALogger logger, boolean useCache) {
+    this.logger = logger;
+    this.useCache = useCache;
+  }
 
   public static void useCache(boolean useCache) {
     instance.switchCache(useCache);
@@ -76,7 +91,7 @@ public class GeolocationService {
                       if (useCache) {
                         Cache.set(cacheKey, geo, cacheTTL);
                       }
-                      return (Geolocation) geo;
+                      return geo;
                     },
                     ex -> {
                       logger.error("Exception ", ex);

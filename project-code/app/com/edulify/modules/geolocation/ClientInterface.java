@@ -1,10 +1,10 @@
 package com.edulify.modules.geolocation;
 
-import play.libs.F;
+import static play.libs.F.Promise;
 
 /**
  * Created by sovaalexandr
  */
 public interface ClientInterface {
-  F.Promise<Geolocation> getGeolocation(String ip);
+  Promise<Geolocation> getGeolocation(String ip) throws Throwable;
 }

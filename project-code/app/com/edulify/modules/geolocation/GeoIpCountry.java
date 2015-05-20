@@ -47,7 +47,7 @@ public class GeoIpCountry implements ClientInterface {
   }
 
   @Override
-  public Promise<Geolocation> getGeolocation(String ip) {
+  public Promise<Geolocation> getGeolocation(String ip) throws Throwable {
     String url = String.format("https://geoip.maxmind.com/a?l=%s&i=%s", maxmindLicense, ip);
 
     if (debug) {

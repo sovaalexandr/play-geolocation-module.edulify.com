@@ -6,12 +6,11 @@ import static org.junit.Assert.*;
 
 public class GeolocationFactoryTest
 {
-    private GeolocationFactory geolocationFactory;
+  private GeolocationFactory geolocationFactory = new GeolocationFactory();
 
-    @Test
-    public void testCreate() throws Exception
-    {
-        Geolocation actual = geolocationFactory.create("198.252.206.140","US","United States","","","",38.,-97.);
+  @Test
+  public void testCreate() throws Exception {
+    Geolocation actual = geolocationFactory.create("198.252.206.140", "US","United States","","","",38.,-97.);
         assertNotNull(actual);
     }
 
