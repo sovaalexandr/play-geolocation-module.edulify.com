@@ -3,7 +3,6 @@ package com.edulify.modules.geolocation.providers;
 import com.edulify.modules.geolocation.Geolocation;
 import com.edulify.modules.geolocation.GeolocationProvider;
 import play.Configuration;
-import play.libs.F;
 import play.libs.concurrent.HttpExecution;
 import play.libs.ws.WSClient;
 
@@ -17,13 +16,11 @@ public class MaxmindProvider implements GeolocationProvider {
   private String license;
 
   private WSClient ws;
-  private Configuration configuration;
 
   @Inject
   public MaxmindProvider(WSClient ws, Configuration configuration) {
     this.ws = ws;
-    this.configuration = configuration;
-    this.license = this.configuration.getString("geolocation.maxmind.license");
+    this.license = configuration.getString("geolocation.maxmind.license");
   }
 
   @Override

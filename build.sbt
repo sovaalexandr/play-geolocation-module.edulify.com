@@ -1,6 +1,6 @@
 name := "geolocation"
 
-version := "2.1.0"
+version := "2.1.1-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
@@ -10,6 +10,7 @@ libraryDependencies ++= Seq(
   javaCore,
   javaWs,
   cache,
+  "com.maxmind.geoip2" % "geoip2" % "2.6.0",
   "org.mockito" % "mockito-core" % "2.0.43-beta" % Test,
   "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test
 )
@@ -49,19 +50,19 @@ pomExtra :=
     <connection>scm:git:git@github.com:edulify/play-geolocation-module.edulify.com.git</connection>
     <developerConnection>scm:git:https://github.com/edulify/play-geolocation-module.edulify.com.git</developerConnection>
   </scm>
-  <developers>
-    <developer>
-      <id>megazord</id>
-      <name>Megazord</name>
-      <email>contact [at] edulify.com</email>
-      <url>https://github.com/megazord</url>
-    </developer>
-    <developer>
-      <id>ranierivalenca</id>
-      <name>Ranieri Valença</name>
-      <email>ranierivalenca [at] edulify.com</email>
-      <url>https://github.com/ranierivalenca</url>
-    </developer>
-  </developers>
+    <developers>
+      <developer>
+        <id>megazord</id>
+        <name>Megazord</name>
+        <email>contact [at] edulify.com</email>
+        <url>https://github.com/megazord</url>
+      </developer>
+      <developer>
+        <id>ranierivalenca</id>
+        <name>Ranieri Valença</name>
+        <email>ranierivalenca [at] edulify.com</email>
+        <url>https://github.com/ranierivalenca</url>
+      </developer>
+    </developers>
 
 scalacOptions := Seq("-feature", "-deprecation")
