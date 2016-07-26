@@ -11,7 +11,7 @@ routesGenerator := InjectedRoutesGenerator
 libraryDependencies ++= Seq(
   // Add your project dependencies here,
   javaCore,
-  "com.edulify" %% "geolocation" % "2.1.0"
+  "com.edulify" %% "geolocation" % "2.1.1-SNAPSHOT"
 )
 
 resolvers ++= Seq(

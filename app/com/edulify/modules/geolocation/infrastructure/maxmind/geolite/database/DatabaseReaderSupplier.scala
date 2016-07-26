@@ -3,8 +3,6 @@ package com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database
 import java.io._
 import java.net.URL
 import java.nio.file.Files
-import java.time.temporal.TemporalAdjusters
-import java.time.{DayOfWeek, LocalDateTime}
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 
@@ -16,10 +14,8 @@ import com.maxmind.geoip2.DatabaseReader
 import com.maxmind.geoip2.exception.HttpException
 import play.api.Configuration
 import play.api.cache.CacheApi
-import play.api.http.{HeaderNames, MimeTypes, Status}
+import play.api.http.{MimeTypes, HeaderNames, Status}
 import play.api.libs.ws.{StreamedResponse, WSClient}
-
-import scala.concurrent.duration.Duration
 
 object DatabaseReaderSupplier {
   case object GetCurrent
@@ -46,13 +42,8 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
   @throws[Exception](classOf[Exception])
   override def preStart() = {
     dbFile.isFile match {
-      case true =>
-        createReader()
-        sceduleNextUpdate()
-      case false => renewDataBase().onComplete { _ =>
-        createReader()
-        sceduleNextUpdate()
-      }
+      case true => createReader()
+      case false => renewDataBase().onComplete { _ => createReader() }
     }
     super.preStart()
   }
@@ -131,23 +122,5 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
           }
         case _ => throw new IOException("Failed to get response")
       }
-  }
-
-  /**
-   *  @see https://dev.maxmind.com/geoip/geoip2/geolite2/#Databases
-   *  GeoLite2 databases are updated on the first Tuesday of each month.
-   */
-  private def sceduleNextUpdate(): Unit = {
-    context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
-  }
-
-  private def durationToNextUpdate() = {
-    val now = LocalDateTime.now()
-    val firstWednesdayOfNextMonth = now
-        .`with`(TemporalAdjusters.firstDayOfNextMonth())
-        .`with`(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
-    val duration = java.time.Duration.between(now, firstWednesdayOfNextMonth)
-
-    Duration.fromNanos(duration.toNanos)
   }
 }
