@@ -5,7 +5,7 @@ import akka.actor.TypedActor;
 import akka.actor.TypedProps;
 import akka.japi.Creator;
 import com.edulify.modules.geolocation.GeolocationProvider;
-import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.DatabaseReaderSupplier;
+import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DatabaseReaderSupplier;
 import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.GeoLite2;
 import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.GeoLite2Impl;
 import com.google.inject.AbstractModule;

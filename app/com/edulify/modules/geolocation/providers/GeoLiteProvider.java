@@ -11,6 +11,7 @@ import com.maxmind.geoip2.record.Subdivision;
 import play.libs.concurrent.HttpExecution;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.concurrent.CompletionStage;
 
@@ -19,7 +20,7 @@ public class GeoLiteProvider implements GeolocationProvider {
   private final GeoLite2 geoLite2;
 
   @Inject
-  public GeoLiteProvider(GeoLite2 geoLite2) {
+  public GeoLiteProvider(@Named("geo-lite-2") GeoLite2 geoLite2) {
     this.geoLite2 = geoLite2;
   }
 

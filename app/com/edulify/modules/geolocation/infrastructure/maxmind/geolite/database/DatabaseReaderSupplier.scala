@@ -1,4 +1,4 @@
-package com.edulify.modules.geolocation.infrastructure.maxmind.geolite
+package com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database
 
 import java.io._
 import java.net.URL
@@ -22,15 +22,19 @@ object DatabaseReaderSupplier {
   case object RenewDB
 }
 
-class DatabaseReaderSupplier (configuration: Configuration, ws: WSClient, cache: CacheApi, baseUrl: String = "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz") (implicit val mat: Materializer) extends Actor {
+class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClient, cache: CacheApi) (implicit val mat: Materializer) extends Actor {
 
   implicit val ec = context.dispatcher
+
+  private val baseUrl = configuration
+    .getString("geolocation.geolite.dbUrl")
+    .getOrElse("http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz")
 
   //DB file changes are not required on reload because whole DB is handled in-memory by nio under hood of DatabaseReader
   private val dbFile = new File(
     configuration
       .getString("geolocation.geolite.dbFile")
-      .getOrElse(System.getProperty("java.io.tmpdir") + "GeoLite2-City.mmdb")
+      .getOrElse(System.getProperty("java.io.tmpdir") + "/GeoLite2-City.mmdb")
   )
 
   private var reader: DatabaseReader = null
@@ -79,12 +83,12 @@ class DatabaseReaderSupplier (configuration: Configuration, ws: WSClient, cache:
 
   private def renewDataBase() = {
     val url = baseUrl
-    val request = ws.url(url).withMethod("GET")
+    var request = ws.url(url).withMethod("GET")
 
     val eTagKey = url + HeaderNames.ETAG
-    cache.get(eTagKey).get match {case eTag: Option[String] => request.withHeaders((HeaderNames.IF_NONE_MATCH, eTag))}
+    request = cache.get(eTagKey).map(eTag => request.withHeaders((HeaderNames.IF_NONE_MATCH,     eTag))).getOrElse(request)
     val dateKey = url + HeaderNames.LAST_MODIFIED
-    cache.get(dateKey).get match {case date: Option[String] => request.withHeaders((HeaderNames.IF_MODIFIED_SINCE, date))}
+    request = cache.get(dateKey).map(date => request.withHeaders((HeaderNames.IF_MODIFIED_SINCE, date))).getOrElse(request)
 
     request.stream()
       .flatMap {

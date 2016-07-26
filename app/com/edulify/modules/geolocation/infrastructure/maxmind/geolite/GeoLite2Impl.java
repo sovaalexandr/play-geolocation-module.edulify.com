@@ -3,12 +3,11 @@ package com.edulify.modules.geolocation.infrastructure.maxmind.geolite;
 import akka.actor.ActorRef;
 import akka.actor.TypedActor;
 import akka.japi.Creator;
+import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DatabaseReaderSupplier;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import scala.concurrent.ExecutionContextExecutor;
-import scala.concurrent.Future;
 import static akka.pattern.Patterns.ask;
-import static akka.dispatch.Futures.failed;
 import static scala.compat.java8.FutureConverters.toJava;
 
 import javax.inject.Inject;
@@ -23,16 +22,20 @@ public class GeoLite2Impl implements GeoLite2
 
   static
   public class GeoLite2ImplCreator implements Creator<GeoLite2Impl> {
-    @Inject
     private ActorRef dataBaseSupplier;
+
+    @Inject
+    public GeoLite2ImplCreator(@Named("database-reader-supplier") ActorRef dataBaseSupplier) {
+      this.dataBaseSupplier = dataBaseSupplier;
+    }
+
     @Override
     public GeoLite2Impl create() throws Exception {
       return new GeoLite2Impl(dataBaseSupplier);
     }
   }
 
-  @Inject
-  public GeoLite2Impl(@Named("database-reader-supplier") ActorRef dataBaseSupplier) {
+  public GeoLite2Impl(ActorRef dataBaseSupplier) {
     this.dataBaseSupplier = dataBaseSupplier;
   }
 
