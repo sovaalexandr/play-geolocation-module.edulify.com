@@ -46,10 +46,14 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
   @throws[Exception](classOf[Exception])
   override def preStart() = {
     dbFile.isFile match {
-      case true => createReader()
-      case false => renewDataBase().onComplete { _ => createReader() }
+      case true =>
+        createReader()
+        sceduleNextUpdate()
+      case false => renewDataBase().onComplete { _ =>
+        createReader()
+        sceduleNextUpdate()
+      }
     }
-    sceduleNextUpdate()
     super.preStart()
   }
 
@@ -134,10 +138,7 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
    *  GeoLite2 databases are updated on the first Tuesday of each month.
    */
   private def sceduleNextUpdate(): Unit = {
-    context.system.scheduler.scheduleOnce(durationToNextUpdate()) {
-      self ! DatabaseReaderSupplier.RenewDB
-      sceduleNextUpdate()
-    }
+    context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
   }
 
   private def durationToNextUpdate() = {
