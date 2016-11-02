@@ -32,6 +32,10 @@ public class GeoLiteProvider implements GeolocationProvider {
   }
 
   private Geolocation asGeolocation(CityResponse response, String ip) {
+    if (null == response) {
+      return null;
+    }
+
     Country country = response.getCountry();
     City city = response.getCity();
     Subdivision subdivision = response.getMostSpecificSubdivision();

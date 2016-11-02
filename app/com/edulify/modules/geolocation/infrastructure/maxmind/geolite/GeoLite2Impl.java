@@ -13,7 +13,6 @@ import static scala.compat.java8.FutureConverters.toJava;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.net.InetAddress;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class GeoLite2Impl implements GeoLite2
@@ -43,14 +42,8 @@ public class GeoLite2Impl implements GeoLite2
   public CompletionStage<CityResponse> locateCityByIp(String ipAddress) {
     ExecutionContextExecutor executor = TypedActor.context().dispatcher();
 
-    try {
-      return toJava(ask(dataBaseSupplier, DatabaseReaderSupplier.GetCurrent$.MODULE$, 50l))
-        .thenApplyAsync(reader -> getFromReader(mapToReader(reader), ipAddress), executor);
-    } catch (RuntimeException e) {
-      CompletableFuture<CityResponse> future = new CompletableFuture<>();
-      future.completeExceptionally(e);
-      return future;
-    }
+    return toJava(ask(dataBaseSupplier, DatabaseReaderSupplier.GetCurrent$.MODULE$, 50l))
+      .thenApplyAsync(reader -> getFromReader(mapToReader(reader), ipAddress), executor);
   }
 
   private DatabaseReader mapToReader(Object reader) {
@@ -63,7 +56,7 @@ public class GeoLite2Impl implements GeoLite2
       final InetAddress address = InetAddress.getByName(ipAddress);
       return reader.city(address);
     } catch (Throwable e) {
-      throw new RuntimeException(e);
+      return null;
     }
   }
 }
