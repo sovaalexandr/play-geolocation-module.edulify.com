@@ -9,7 +9,7 @@ import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 
 import akka.Done
-import akka.actor.Actor
+import akka.actor.{Actor, Cancellable}
 import akka.dispatch.Futures
 import akka.stream.Materializer
 import com.maxmind.db.CHMCache
@@ -48,6 +48,7 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
       .getOrElse(System.getProperty("java.io.tmpdir") + "/GeoLite2-City.mmdb")
   )
 
+  private var updates: Cancellable = null
   private var reader: DatabaseReader = null
 
   @throws[Exception](classOf[Exception])
@@ -68,6 +69,7 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
   @throws[Exception](classOf[Exception])
   override def postStop(): Unit = {
     closeReader()
+    updates.cancel()
     super.postStop()
   }
 
@@ -156,8 +158,9 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
    *  @see https://dev.maxmind.com/geoip/geoip2/geolite2/#Databases
    *  GeoLite2 databases are updated on the first Tuesday of each month.
    */
-  private def sceduleNextUpdate() = {
-    context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
+  private def sceduleNextUpdate(): Unit = {
+    updates.cancel()
+    updates = context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
   }
 
   private def durationToNextUpdate() = {
