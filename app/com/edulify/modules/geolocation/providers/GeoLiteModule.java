@@ -5,17 +5,20 @@ import akka.actor.TypedActor;
 import akka.actor.TypedProps;
 import akka.japi.Creator;
 import com.edulify.modules.geolocation.GeolocationProvider;
-import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DatabaseReaderSupplier;
 import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.GeoLite2;
 import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.GeoLite2Impl;
-import com.google.inject.AbstractModule;
-import com.google.inject.Inject;
-import com.google.inject.Provider;
+import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DatabaseReaderSupplier;
+import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DurationToFirstWednesdayOfNextMonth;
+import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.DurationToUpdateProvider;
+import com.google.inject.*;
 import com.google.inject.name.Names;
+import play.Configuration;
 import play.inject.Injector;
 import play.libs.akka.AkkaGuiceSupport;
 
 import java.util.function.Function;
+
+import static java.util.Optional.ofNullable;
 
 public class GeoLiteModule extends AbstractModule implements AkkaGuiceSupport {
 
@@ -29,6 +32,24 @@ public class GeoLiteModule extends AbstractModule implements AkkaGuiceSupport {
       "geo-lite-2",
       Function.identity());
     bind(GeolocationProvider.class).to(GeoLiteProvider.class);
+  }
+
+  @Provides
+  @Singleton
+  public DurationToUpdateProvider durationToUpdateProvider(Configuration configuration)
+  {
+    return ofNullable(configuration.getString("geolocation.geolite.updateDurationProvider"))
+      .map(this::loadClassByName)
+      .orElseGet(DurationToFirstWednesdayOfNextMonth::new);
+  }
+
+  private DurationToUpdateProvider loadClassByName(final String className)
+  {
+    try {
+      return (DurationToUpdateProvider) getClass().getClassLoader().loadClass(className).newInstance();
+    } catch (Throwable exception) {
+      throw new RuntimeException(exception);
+    }
   }
 
   public <TypedActorT, TypedActorI extends TypedActorT> void bindTypedActor(

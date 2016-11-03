@@ -3,8 +3,6 @@ package com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database
 import java.io._
 import java.net.URL
 import java.nio.file.Files
-import java.time.temporal.TemporalAdjusters
-import java.time.{DayOfWeek, LocalDateTime}
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 
@@ -21,7 +19,6 @@ import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.ws.{StreamedResponse, WSClient, WSResponseHeaders}
 
 import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 import scala.util.Failure
 
 object DatabaseReaderSupplier {
@@ -29,7 +26,12 @@ object DatabaseReaderSupplier {
   case object RenewDB
 }
 
-class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClient, cache: CacheApi) (implicit val mat: Materializer) extends Actor {
+class DatabaseReaderSupplier @Inject() (
+                                         configuration: Configuration,
+                                         ws: WSClient,
+                                         cache: CacheApi,
+                                         durationProvider: DurationToUpdateProvider
+                                         ) (implicit val mat: Materializer) extends Actor {
 
   implicit val ec = context.dispatcher
 
@@ -160,16 +162,6 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
    */
   private def sceduleNextUpdate(): Unit = {
     updates.cancel()
-    updates = context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
-  }
-
-  private def durationToNextUpdate() = {
-    val now = LocalDateTime.now()
-    val firstWednesdayOfNextMonth = now
-      .`with`(TemporalAdjusters.firstDayOfNextMonth())
-      .`with`(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
-    val duration = java.time.Duration.between(now, firstWednesdayOfNextMonth)
-
-    Duration.fromNanos(duration.toNanos)
+    updates = context.system.scheduler.scheduleOnce(durationProvider.getDurationToNextUpdate, self, DatabaseReaderSupplier.RenewDB)
   }
 }
