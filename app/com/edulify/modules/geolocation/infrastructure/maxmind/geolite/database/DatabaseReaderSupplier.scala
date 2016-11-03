@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 
+import akka.Done
 import akka.actor.Actor
 import akka.dispatch.Futures
 import akka.stream.Materializer
@@ -14,8 +15,11 @@ import com.maxmind.geoip2.DatabaseReader
 import com.maxmind.geoip2.exception.HttpException
 import play.api.Configuration
 import play.api.cache.CacheApi
-import play.api.http.{MimeTypes, HeaderNames, Status}
-import play.api.libs.ws.{StreamedResponse, WSClient}
+import play.api.http.{HeaderNames, MimeTypes, Status}
+import play.api.libs.ws.{StreamedResponse, WSClient, WSResponseHeaders}
+
+import scala.concurrent.Future
+import scala.util.Failure
 
 object DatabaseReaderSupplier {
   case object GetCurrent
@@ -30,6 +34,10 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
     .getString("geolocation.geolite.dbUrl")
     .getOrElse("http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz")
 
+  private val gZipped = configuration
+    .getBoolean("geolocation.geolite.gzipped")
+    .getOrElse(true)
+
   //DB file changes are not required on reload because whole DB is handled in-memory by nio under hood of DatabaseReader
   private val dbFile = new File(
     configuration
@@ -41,9 +49,10 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
 
   @throws[Exception](classOf[Exception])
   override def preStart() = {
-    dbFile.isFile match {
-      case true => createReader()
-      case false => renewDataBase().onComplete { _ => createReader() }
+    if (dbFile.isFile) {
+      createReader()
+    } else {
+      renewDataBase().onComplete { _ => createReader() }
     }
     super.preStart()
   }
@@ -97,22 +106,22 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
             case Status.OK =>
               response.headers.get(HeaderNames.CONTENT_TYPE).flatMap(_.headOption).get match {
                 case MimeTypes.BINARY =>
-                  val gZippedDbFile = new File(dbFile.getPath+".gz")
-                  val gZippedDbFileStream = new FileOutputStream(gZippedDbFile)
+                  val destinationFileName = if (gZipped) dbFile.getPath+".gz" else dbFile.getPath
+                  val destinationFile = new File(destinationFileName)
+                  val destinationStream = new FileOutputStream(destinationFile)
 
-                  body.runForeach({ bytes => gZippedDbFileStream.write(bytes.toArray)})
-                    .andThen({ case result =>
-                      Files.copy(new GZIPInputStream(new FileInputStream(gZippedDbFile)), dbFile.toPath)
-                      gZippedDbFileStream.close()
-                    }).map( _ => {
-                      response.headers.get(HeaderNames.ETAG).flatMap(_.headOption).get match {
-                        case eTag:String => cache.set(eTagKey, eTag)
-                      }
-                      response.headers.get(HeaderNames.LAST_MODIFIED).flatMap(_.headOption).get match {
-                        case date:String => cache.set(dateKey, date)
-                      }
-                      dbFile
-                    })
+                  var download = body.runForeach({ bytes => destinationStream.write(bytes.toArray) })
+                  if (gZipped) {
+                    download = download
+                      .andThen({ case result =>
+                        Files.copy(new GZIPInputStream(new FileInputStream(destinationFile)), dbFile.toPath)
+                        destinationStream.close()
+                      })
+                  }
+                  val cacheHeader = getHeaderCacher(download, response)
+                  cacheHeader(eTagKey, HeaderNames.ETAG)
+                  cacheHeader(dateKey, HeaderNames.LAST_MODIFIED)
+                  download map { _ => dbFile }
 
                 case other => throw new HttpException(s"Unexpected content type got: $other", Status.OK, new URL(url))
               }
@@ -122,5 +131,15 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
           }
         case _ => throw new IOException("Failed to get response")
       }
+  }
+
+  private def getHeaderCacher(download: Future[Done], response: WSResponseHeaders) = {
+    { (cacheKey: String, headerName: String) => download.onComplete({
+      case scala.util.Success(_) =>
+        response.headers.get(headerName).flatMap(_.headOption).get match {
+          case eTag: String => cache.set(cacheKey, eTag)
+        }
+      case Failure(e) => // Do nothing
+    })}
   }
 }

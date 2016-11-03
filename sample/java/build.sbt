@@ -14,6 +14,4 @@ libraryDependencies ++= Seq(
   "com.edulify" %% "geolocation" % "2.1.1-SNAPSHOT"
 )
 
-resolvers ++= Seq(
-  Resolver.typesafeRepo("releases")
-)
+resolvers += Resolver.url("Edulify Repository", url("https://edulify.github.io/modules/releases/"))(Resolver.ivyStylePatterns)
