@@ -7,6 +7,10 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.TemporalAdjusters;
 
+/**
+ *  {@see https://dev.maxmind.com/geoip/geoip2/geolite2/#Databases}
+ *  GeoLite2 databases are updated on the first Tuesday of each month.
+ */
 public class DurationToFirstWednesdayOfNextMonth implements DurationToUpdateProvider
 {
   @Override

@@ -7,13 +7,15 @@ import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database.D
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import scala.concurrent.ExecutionContextExecutor;
-import static akka.pattern.Patterns.ask;
-import static scala.compat.java8.FutureConverters.toJava;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.net.InetAddress;
 import java.util.concurrent.CompletionStage;
+
+import static akka.pattern.Patterns.ask;
+import static java.util.Optional.ofNullable;
+import static scala.compat.java8.FutureConverters.toJava;
 
 public class GeoLite2Impl implements GeoLite2
 {
@@ -43,7 +45,13 @@ public class GeoLite2Impl implements GeoLite2
     ExecutionContextExecutor executor = TypedActor.context().dispatcher();
 
     return toJava(ask(dataBaseSupplier, DatabaseReaderSupplier.GetCurrent$.MODULE$, 50l))
-      .thenApplyAsync(reader -> getFromReader(mapToReader(reader), ipAddress), executor);
+      .thenApplyAsync(
+        externalReply -> ofNullable(externalReply)
+          .map(this::mapToReader)
+          .map(dbReader -> getFromReader(dbReader, ipAddress))
+          .orElse(null),
+        executor
+      );
   }
 
   private DatabaseReader mapToReader(Object reader) {

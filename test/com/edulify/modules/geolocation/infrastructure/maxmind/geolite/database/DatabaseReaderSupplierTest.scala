@@ -13,7 +13,7 @@ import org.scalatest.mock.MockitoSugar
 import org.scalatestplus.play.{OneAppPerSuite, PlaySpec}
 import play.api.Application
 import play.api.cache.CacheApi
-import play.api.http.{MimeTypes, Status, HeaderNames}
+import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.{StreamedResponse, WSClient, WSRequest, WSResponseHeaders}
 
@@ -38,8 +38,10 @@ class DatabaseReaderSupplierTest extends PlaySpec with MockitoSugar with OneAppP
 
   val mockWsClient = mock[WSClient]
   val mockCache = mock[CacheApi]
+  val mockDuration = mock[DurationToUpdateProvider]
+  when(mockDuration.getDurationToNextUpdate) thenReturn 1.days
 
-  val actorRef = TestActorRef(new DatabaseReaderSupplier(app.configuration, mockWsClient, mockCache))
+  val actorRef = TestActorRef(new DatabaseReaderSupplier(app.configuration, mockWsClient, mockCache, mockDuration))
   val url = "http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.mmdb.gz"
   val eTagKey = url + HeaderNames.ETAG
   val lastModifiedKey = url + HeaderNames.LAST_MODIFIED

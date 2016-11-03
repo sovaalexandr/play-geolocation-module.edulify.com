@@ -19,7 +19,7 @@ import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.ws.{StreamedResponse, WSClient, WSResponseHeaders}
 
 import scala.concurrent.Future
-import scala.util.Failure
+import scala.util.{Failure, Success}
 
 object DatabaseReaderSupplier {
   case object GetCurrent
@@ -71,7 +71,7 @@ class DatabaseReaderSupplier @Inject() (
   @throws[Exception](classOf[Exception])
   override def postStop(): Unit = {
     closeReader()
-    updates.cancel()
+    updates cancel()
     super.postStop()
   }
 
@@ -100,7 +100,7 @@ class DatabaseReaderSupplier @Inject() (
    * DB reader should be closed correctly
    */
   private def closeReader(): Unit = {
-    reader.close()
+    reader close()
   }
 
   private def renewDataBase() = {
@@ -128,7 +128,7 @@ class DatabaseReaderSupplier @Inject() (
                     download = download
                       .andThen({ case result =>
                         Files.copy(new GZIPInputStream(new FileInputStream(destinationFile)), dbFile.toPath)
-                        destinationStream.close()
+                        destinationStream close()
                       })
                   }
                   val cacheHeader = getHeaderCacher(download, response)
@@ -147,21 +147,16 @@ class DatabaseReaderSupplier @Inject() (
   }
 
   private def getHeaderCacher(download: Future[Done], response: WSResponseHeaders) = {
-    { (cacheKey: String, headerName: String) => download.onComplete({
-      case scala.util.Success(_) =>
-        response.headers.get(headerName).flatMap(_.headOption).get match {
-          case eTag: String => cache.set(cacheKey, eTag)
-        }
-      case Failure(e) => // Do nothing
-    })}
+    {
+      (cacheKey: String, headerName: String) => download onComplete {
+        case Success(_) => response.headers get headerName flatMap(_.headOption) foreach { header => cache.set(cacheKey, header) }
+        case Failure(e) => // Do nothing
+      }
+    }
   }
 
-  /**
-   *  @see https://dev.maxmind.com/geoip/geoip2/geolite2/#Databases
-   *  GeoLite2 databases are updated on the first Tuesday of each month.
-   */
   private def sceduleNextUpdate(): Unit = {
-    updates.cancel()
+    Option(updates) foreach { cancellable => cancellable cancel() }
     updates = context.system.scheduler.scheduleOnce(durationProvider.getDurationToNextUpdate, self, DatabaseReaderSupplier.RenewDB)
   }
 }
