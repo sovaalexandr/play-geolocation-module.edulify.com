@@ -3,6 +3,8 @@ package com.edulify.modules.geolocation.infrastructure.maxmind.geolite.database
 import java.io._
 import java.net.URL
 import java.nio.file.Files
+import java.time.temporal.TemporalAdjusters
+import java.time.{DayOfWeek, LocalDateTime}
 import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 
@@ -19,6 +21,7 @@ import play.api.http.{HeaderNames, MimeTypes, Status}
 import play.api.libs.ws.{StreamedResponse, WSClient, WSResponseHeaders}
 
 import scala.concurrent.Future
+import scala.concurrent.duration.Duration
 import scala.util.Failure
 
 object DatabaseReaderSupplier {
@@ -51,8 +54,13 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
   override def preStart() = {
     if (dbFile.isFile) {
       createReader()
+      sceduleNextUpdate()
     } else {
-      renewDataBase().onComplete { _ => createReader() }
+      renewDataBase().onComplete { _ => {
+          createReader()
+          sceduleNextUpdate()
+        }
+      }
     }
     super.preStart()
   }
@@ -68,9 +76,10 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
     case DatabaseReaderSupplier.GetCurrent => sender ! reader
 
     case DatabaseReaderSupplier.RenewDB => renewDataBase()
-      .onComplete { some =>
-          closeReader()
-          createReader()
+      .onComplete { _ =>
+        closeReader()
+        createReader()
+        sceduleNextUpdate()
     }
 
     case other => unhandled(other)
@@ -141,5 +150,23 @@ class DatabaseReaderSupplier @Inject() (configuration: Configuration, ws: WSClie
         }
       case Failure(e) => // Do nothing
     })}
+  }
+
+  /**
+   *  @see https://dev.maxmind.com/geoip/geoip2/geolite2/#Databases
+   *  GeoLite2 databases are updated on the first Tuesday of each month.
+   */
+  private def sceduleNextUpdate() = {
+    context.system.scheduler.scheduleOnce(durationToNextUpdate(), self, DatabaseReaderSupplier.RenewDB)
+  }
+
+  private def durationToNextUpdate() = {
+    val now = LocalDateTime.now()
+    val firstWednesdayOfNextMonth = now
+      .`with`(TemporalAdjusters.firstDayOfNextMonth())
+      .`with`(TemporalAdjusters.nextOrSame(DayOfWeek.WEDNESDAY))
+    val duration = java.time.Duration.between(now, firstWednesdayOfNextMonth)
+
+    Duration.fromNanos(duration.toNanos)
   }
 }
