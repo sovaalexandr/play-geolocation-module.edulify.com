@@ -59,11 +59,7 @@ class DatabaseReaderSupplier @Inject() (
       createReader()
       sceduleNextUpdate()
     } else {
-      renewDataBase().onComplete { _ => {
-          createReader()
-          sceduleNextUpdate()
-        }
-      }
+      renewReader()
     }
     super.preStart()
   }
@@ -79,28 +75,36 @@ class DatabaseReaderSupplier @Inject() (
 
     case DatabaseReaderSupplier.GetCurrent => sender ! reader
 
-    case DatabaseReaderSupplier.RenewDB => renewDataBase()
-      .onComplete { _ =>
-        closeReader()
-        createReader()
-        sceduleNextUpdate()
-    }
+    case DatabaseReaderSupplier.RenewDB => renewReader()
 
     case other => unhandled(other)
   }
 
+  private def renewReader(): Unit = {
+    renewDataBase()
+      .onComplete { _ =>
+        closeReader()
+        createReader()
+        sceduleNextUpdate()
+      }
+  }
+
   private def createReader(): Unit = {
-    reader = new DatabaseReader
+    try {
+      reader = new DatabaseReader
       .Builder(dbFile)
       .withCache(new CHMCache()) // Each reader have to get it's own cache because DB could be already changed
       .build()
+    } catch {
+      case e: Throwable => // Reader still not ready
+    }
   }
 
   /**
    * DB reader should be closed correctly
    */
   private def closeReader(): Unit = {
-    reader close()
+    Option(reader) foreach { reader  => reader close() }
   }
 
   private def renewDataBase() = {
