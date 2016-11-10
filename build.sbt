@@ -7,10 +7,9 @@ scalaVersion := "2.11.7"
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
 libraryDependencies ++= Seq(
-  javaCore,
   javaWs,
   cache,
-  "com.maxmind.geoip2" % "geoip2" % "2.6.0",
+  "com.maxmind.geoip2" % "geoip2" % "2.8.0",
   "org.mockito" % "mockito-core" % "2.2.11" % Test,
   "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.0" % Test,
   "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test,
