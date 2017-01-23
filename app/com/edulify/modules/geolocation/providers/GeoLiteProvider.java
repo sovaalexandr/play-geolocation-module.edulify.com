@@ -1,19 +1,19 @@
 package com.edulify.modules.geolocation.providers;
 
 import com.edulify.modules.geolocation.Geolocation;
+import com.edulify.modules.geolocation.GeolocationBuilder;
 import com.edulify.modules.geolocation.GeolocationProvider;
 import com.edulify.modules.geolocation.infrastructure.maxmind.geolite.GeoLite2;
 import com.maxmind.geoip2.model.CityResponse;
-import com.maxmind.geoip2.record.City;
 import com.maxmind.geoip2.record.Country;
-import com.maxmind.geoip2.record.Location;
-import com.maxmind.geoip2.record.Subdivision;
 import play.libs.concurrent.HttpExecution;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.concurrent.CompletionStage;
+
+import static java.util.Optional.ofNullable;
 
 @Singleton
 public class GeoLiteProvider implements GeolocationProvider {
@@ -36,21 +36,20 @@ public class GeoLiteProvider implements GeolocationProvider {
       return null;
     }
 
-    Country country = response.getCountry();
-    City city = response.getCity();
-    Subdivision subdivision = response.getMostSpecificSubdivision();
-    Location location = response.getLocation();
+    final GeolocationBuilder geolocationBuilder = new GeolocationBuilder(ip);
+    final Country locatedCountry = ofNullable(response.getCountry()).filter(country -> null != country.getIsoCode())
+      .orElseGet(response::getRegisteredCountry);
+    ofNullable(locatedCountry)
+      .ifPresent(country -> geolocationBuilder.withIsoCode(country.getIsoCode()).withCountryName(country.getName()));
+    ofNullable(response.getCity())
+      .ifPresent(city -> geolocationBuilder.withCityName(city.getName()));
+    ofNullable(response.getMostSpecificSubdivision())
+      .ifPresent(subdivision -> geolocationBuilder.withRegionCode(subdivision.getIsoCode()).withRegionName(subdivision.getName()));
+    ofNullable(response.getLocation())
+      .ifPresent(location -> geolocationBuilder.withLatitude(location.getLatitude())
+        .withLongitude(location.getLongitude()).withTimeZone(location.getTimeZone())
+      );
 
-    return new Geolocation(
-      ip,
-      country.getIsoCode(),
-      country.getName(),
-      subdivision.getIsoCode(),
-      subdivision.getName(),
-      city.getName(),
-      location.getLatitude(),
-      location.getLongitude(),
-      location.getTimeZone()
-    );
+    return geolocationBuilder.build();
   }
 }
