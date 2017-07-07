@@ -4,14 +4,14 @@ version := "1.0-SNAPSHOT"
 
 lazy val root = (project in file(".")).enablePlugins(PlayJava)
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.11.11"
 
 routesGenerator := InjectedRoutesGenerator
 
 libraryDependencies ++= Seq(
   // Add your project dependencies here,
   javaCore,
-  "com.edulify" %% "geolocation" % "2.1.0"
+  "com.edulify" %% "geolocation" % "2.2.0"
 )
 
 resolvers ++= Seq(
