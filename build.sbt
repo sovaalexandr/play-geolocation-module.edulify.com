@@ -2,15 +2,13 @@ name := "geolocation"
 
 version := "2.2.0"
 
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.4"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+lazy val root = (project in file(".")).enablePlugins(PlayMinimalJava)
 
 libraryDependencies ++= Seq(
-  javaCore,
   javaWs,
-  ehcache,
-  guice,
+  cacheApi,
   "com.typesafe.play" %% "play-json" % "2.6.0",
   "org.mockito" % "mockito-core" % "2.0.43-beta" % Test,
   "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test
