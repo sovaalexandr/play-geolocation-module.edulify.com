@@ -9,7 +9,7 @@ lazy val root = (project in file(".")).enablePlugins(PlayMinimalJava)
 libraryDependencies ++= Seq(
   javaWs,
   cacheApi,
-  "com.typesafe.play" %% "play-json" % "2.6.0",
+  guice,
   "org.mockito" % "mockito-core" % "2.0.43-beta" % Test,
   "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test
 )
