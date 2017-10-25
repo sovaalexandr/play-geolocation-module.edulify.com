@@ -1,9 +1,11 @@
 package com.edulify.modules.geolocation;
 
+import com.edulify.modules.geolocation.providers.FreegeoipModule;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import play.Application;
+import play.inject.guice.GuiceApplicationBuilder;
 import play.test.Helpers;
 
 import java.util.HashMap;
@@ -47,6 +49,6 @@ public class GeolocationCacheTest {
   private Application getApplication(boolean cacheOn) {
     Map<String, Object> config = new HashMap<>();
     config.put("geolocation.cache.on", cacheOn);
-    return Helpers.fakeApplication(config);
+    return new GuiceApplicationBuilder().bindings(new FreegeoipModule()).configure(config).build();
   }
 }
