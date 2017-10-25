@@ -3,37 +3,43 @@ package com.edulify.modules.geolocation.providers;
 import com.edulify.modules.geolocation.Geolocation;
 import com.edulify.modules.geolocation.GeolocationProvider;
 import com.fasterxml.jackson.databind.JsonNode;
-import play.libs.concurrent.HttpExecution;
 import play.libs.ws.WSClient;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
-@Singleton
 public class FreegeoipProvider implements GeolocationProvider {
 
   private WSClient ws;
 
-  @Inject
-  public FreegeoipProvider(WSClient ws) {
+  private final String urlFormat;
+
+  private final Executor threadToRunOn;
+
+  public FreegeoipProvider(WSClient ws, Executor threadToRunOn, String urlFormat) {
     this.ws = ws;
+    this.urlFormat = urlFormat;
+    this.threadToRunOn = threadToRunOn;
+  }
+
+  FreegeoipProvider(WSClient ws, Executor threadToRunOn) {
+    this(ws, threadToRunOn, "http://freegeoip.net/json/%s");
   }
 
   @Override
   public CompletionStage<Geolocation> get(String ip) {
-    String url = String.format("http://freegeoip.net/json/%s", ip);
+    String url = String.format(urlFormat, ip);
     return ws.url(url)
         .get()
         .thenApplyAsync(response -> {
           if (response.getStatus() != 200) return null;
           if (response.getBody().contains("not found")) return null;
           return response.asJson();
-        }, HttpExecution.defaultContext())
+        }, threadToRunOn)
         .thenApplyAsync(json -> {
           if (json == null) return Geolocation.empty();
           return asGeolocation(json);
-        }, HttpExecution.defaultContext());
+        }, threadToRunOn);
   }
 
   private Geolocation asGeolocation(JsonNode json) {
