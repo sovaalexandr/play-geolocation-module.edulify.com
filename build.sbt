@@ -10,7 +10,8 @@ libraryDependencies ++= Seq(
   javaWs,
   cacheApi,
   guice,
-  "org.mockito" % "mockito-core" % "2.0.43-beta" % Test,
+  ehcache % Test, // Should be removed with deprecated GeolocationService and GeolocationCache
+  "org.mockito" % "mockito-core" % "2.11.0" % Test,
   "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test
 )
 

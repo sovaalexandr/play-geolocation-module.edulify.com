@@ -9,6 +9,10 @@ import play.test.Helpers;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * @deprecated Deprecated as of 2.2.0. Source should be removed.
+ */
+@Deprecated
 public class GeolocationCacheTest {
 
   private final String ipAddress = "192.30.252.129";
