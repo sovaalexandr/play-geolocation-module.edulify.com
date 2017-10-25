@@ -1,19 +1,18 @@
 name := "geolocation"
 
-version := "2.1.1-SNAPSHOT"
+version := "2.2.0"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.12.4"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+lazy val root = (project in file(".")).enablePlugins(PlayMinimalJava)
 
 libraryDependencies ++= Seq(
   javaWs,
-  cache,
-  "com.maxmind.geoip2" % "geoip2" % "2.8.0",
-  "org.mockito" % "mockito-core" % "2.2.11" % Test,
-  "org.scalatestplus.play" %% "scalatestplus-play" % "1.5.0" % Test,
-  "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test,
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.8" % Test
+  cacheApi,
+  guice,
+  ehcache % Test, // Should be removed with deprecated GeolocationService and GeolocationCache
+  "org.mockito" % "mockito-core" % "2.11.0" % Test,
+  "com.jayway.awaitility" % "awaitility" % "1.7.0" % Test
 )
 
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-v", "-q")
@@ -51,19 +50,19 @@ pomExtra :=
     <connection>scm:git:git@github.com:edulify/play-geolocation-module.edulify.com.git</connection>
     <developerConnection>scm:git:https://github.com/edulify/play-geolocation-module.edulify.com.git</developerConnection>
   </scm>
-    <developers>
-      <developer>
-        <id>megazord</id>
-        <name>Megazord</name>
-        <email>contact [at] edulify.com</email>
-        <url>https://github.com/megazord</url>
-      </developer>
-      <developer>
-        <id>ranierivalenca</id>
-        <name>Ranieri Valença</name>
-        <email>ranierivalenca [at] edulify.com</email>
-        <url>https://github.com/ranierivalenca</url>
-      </developer>
-    </developers>
+  <developers>
+    <developer>
+      <id>megazord</id>
+      <name>Megazord</name>
+      <email>contact [at] edulify.com</email>
+      <url>https://github.com/megazord</url>
+    </developer>
+    <developer>
+      <id>ranierivalenca</id>
+      <name>Ranieri Valença</name>
+      <email>ranierivalenca [at] edulify.com</email>
+      <url>https://github.com/ranierivalenca</url>
+    </developer>
+  </developers>
 
 scalacOptions := Seq("-feature", "-deprecation")

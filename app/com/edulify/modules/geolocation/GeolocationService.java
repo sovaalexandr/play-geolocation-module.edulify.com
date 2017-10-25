@@ -3,9 +3,14 @@ package com.edulify.modules.geolocation;
 import play.libs.concurrent.HttpExecution;
 
 import javax.inject.Inject;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+/**
+ * Wrapper for {@link GeolocationProvider} to cache results.
+ *
+ * @deprecated Deprecated as of 2.2.0. Use {@link CachedProvider}.
+ */
+@Deprecated
 public final class GeolocationService {
 
   private GeolocationProvider provider;
@@ -18,11 +23,9 @@ public final class GeolocationService {
   }
 
   public CompletionStage<Geolocation> getGeolocation(String ip) {
-    Geolocation geolocation = cache.get(ip);
-    if (geolocation != null) return CompletableFuture.completedFuture(geolocation);
+    final CompletionStage<Geolocation> stage = provider.get(ip);
+    stage.thenAcceptAsync(cache::set, HttpExecution.defaultContext());
 
-    CompletionStage<Geolocation> promise = provider.get(ip);
-    promise.thenAcceptAsync(cache::set, HttpExecution.defaultContext());
-    return promise;
+    return stage;
   }
 }

@@ -6,6 +6,13 @@ import play.cache.CacheApi;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+
+/**
+ * The GeolocationCache API.
+ *
+ * @deprecated Deprecated as of 2.2.0. Use {@link CachedProvider}.
+ */
+@Deprecated
 @Singleton
 public class GeolocationCache {
 

@@ -2,31 +2,37 @@ package com.edulify.modules.geolocation.providers;
 
 import com.edulify.modules.geolocation.Geolocation;
 import com.edulify.modules.geolocation.GeolocationProvider;
-import play.Configuration;
-import play.libs.concurrent.HttpExecution;
 import play.libs.ws.WSClient;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 
-@Singleton
 public class MaxmindProvider implements GeolocationProvider {
 
-  private String license;
+  private final Executor threadToRunOn;
 
-  private WSClient ws;
+  private final WSClient ws;
 
-  @Inject
-  public MaxmindProvider(WSClient ws, Configuration configuration) {
+  private final String license;
+
+  private final String baseUrl;
+
+  MaxmindProvider(WSClient ws, String license, Executor threadToRunOn, String urlFormat) {
     this.ws = ws;
-    this.license = configuration.getString("geolocation.maxmind.license");
+    this.license = license;
+    this.threadToRunOn = threadToRunOn;
+    this.baseUrl = urlFormat;
+  }
+
+  public MaxmindProvider(WSClient ws, String license, Executor threadToRunOn) {
+    this(ws, license, threadToRunOn, "https://geoip.maxmind.com/a?l=%s");
   }
 
   @Override
   public CompletionStage<Geolocation> get(final String ip) {
-    String url = String.format("https://geoip.maxmind.com/a?l=%s&i=%s", license, ip);
-    return ws.url(url)
+    return ws.url(baseUrl) // WSRequest is not a value-object. Adding query parameters will modify it's state instead of
+        .addQueryParameter("l", license) // creating a new instance. That is why we FORCED to store all request
+        .addQueryParameter("i", ip) // parameters and re-creating request each time rather re-using same instance.
         .get()
         .thenApplyAsync(response -> {
           if (response.getStatus() != 200) return null;
@@ -34,10 +40,10 @@ public class MaxmindProvider implements GeolocationProvider {
           String body = response.getBody();
           if ("(null),IP_NOT_FOUND".equals(body)) return null;
           return body;
-        }, HttpExecution.defaultContext())
+        }, threadToRunOn)
         .thenApplyAsync(body -> {
           if (body == null) return Geolocation.empty();
           return new Geolocation(ip, body);
-        }, HttpExecution.defaultContext());
+        }, threadToRunOn);
   }
 }

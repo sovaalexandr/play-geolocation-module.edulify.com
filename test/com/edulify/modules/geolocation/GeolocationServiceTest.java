@@ -1,21 +1,26 @@
 package com.edulify.modules.geolocation;
 
-import org.junit.*;
-import org.hamcrest.*;
+import org.hamcrest.CoreMatchers;
+import org.junit.Assert;
+import org.junit.Test;
 import org.mockito.Mockito;
-
-import play.*;
-import play.test.WithApplication;
+import play.Application;
+import play.Mode;
 import play.inject.guice.GuiceApplicationBuilder;
+import play.test.WithApplication;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
-import static com.jayway.awaitility.Awaitility.*;
+import static com.jayway.awaitility.Awaitility.await;
 import static play.inject.Bindings.bind;
 
+/**
+ * @deprecated Deprecated as of 2.2.0. Source should be removed.
+ */
+@Deprecated
 public class GeolocationServiceTest extends WithApplication {
 
   private final String ipAddress = "192.30.252.129";
