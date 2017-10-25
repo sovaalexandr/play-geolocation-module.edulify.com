@@ -2,15 +2,14 @@ name := "geolocation-java-sample"
 
 version := "1.0-SNAPSHOT"
 
-lazy val root = (project in file(".")).enablePlugins(PlayJava)
+lazy val root = (project in file(".")).enablePlugins(PlayMinimalJava)
 
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.4"
 
 routesGenerator := InjectedRoutesGenerator
 
 libraryDependencies ++= Seq(
-  // Add your project dependencies here,
-  javaCore,
+  ehcache,
   "com.edulify" %% "geolocation" % "2.2.0"
 )
 
