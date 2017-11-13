@@ -1,9 +1,6 @@
 .idea
-project
 target
-logs
-project/project
-project/target
+logs/
 tmp
 .history
 dist

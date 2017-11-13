@@ -66,8 +66,6 @@ object ApplicationBuild extends Build {
 
   val appDependencies = Seq(
     // Add your project dependencies here,
-    javaCore,
-    javaJdbc,
     "com.edulify" %% "geolocation" % "2.1.0"
   )
 
@@ -84,13 +82,13 @@ object ApplicationBuild extends Build {
 Since there is support to Freegeoip and Maxmind, there is also two modules that you enable, depending on which one you want to use. To eanble the module, just add the following line to you `conf/application.conf` file:
 
 ```
-play.modules.enabled += "com.edulify.modules.geolocation.providers.FreegeoipModule"
+play.modules.enabled += "com.edulify.modules.geolocation.FreegeoipModule"
 ```
 
 Or, in case you want to use Maxmind instead:
 
 ```
-play.modules.enabled += "com.edulify.modules.geolocation.providers.MaxmindModule"
+play.modules.enabled += "com.edulify.modules.geolocation.MaxmindModule"
 ```
 
 ## Configurations
@@ -112,14 +110,13 @@ geolocation {
     on = true
     ttl = 10s
   }
-  maxmind.license = "your-maxmind-license"
 }
 ```
 
 Also, notice that the cache uses the cache support offered by Playframework. A complete configuration can be found below:
 
 ```
-play.modules.enabled += "com.edulify.modules.geolocation.providers.FreegeoipModule"
+play.modules.enabled += "com.edulify.modules.geolocation.FreegeoipModule"
 
 geolocation {
   cache {
