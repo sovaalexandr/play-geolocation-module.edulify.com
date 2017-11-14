@@ -1,6 +1,6 @@
 language: scala
 script:
-   - sbt clean compile test publishLocal
+   - sbt clean compile test
 
 jdk:
    - oraclejdk8
