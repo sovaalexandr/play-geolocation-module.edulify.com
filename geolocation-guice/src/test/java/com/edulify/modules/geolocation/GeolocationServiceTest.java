@@ -28,7 +28,7 @@ public class GeolocationServiceTest {
     GeolocationService service = new GeolocationService(provider, cache);
     Geolocation target = service.getGeolocation(ipAddress).toCompletableFuture().get(1, TimeUnit.SECONDS);
 
-    verify(cache).set(geolocation);
+    verify(cache, timeout(100).times(1)).set(geolocation);
 
     Assert.assertSame(target, geolocation);
   }
