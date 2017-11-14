@@ -124,12 +124,18 @@ lazy val `maxmind-geoip2web-guice` = (project in file("maxmind-geoip2web-guice")
   ))
   .dependsOn(`maxmind-geoip2web`, `geolocation-guice` % "test->test;compile->compile")
 
-lazy val `maxmind-geoip2db-guice` = (project in file("maxmind-geoip2db-guice"))
+lazy val `maxmind-geoip2db` = (project in file("maxmind-geoip2db"))
   .settings(commonSettings)
   .settings(libraryDependencies ++= Seq(
     "com.sovaalexandr" %% "maxmind-geoip2-async-guice" % "1.0.0-SNAPSHOT"
   ))
-  .dependsOn(`geolocation-guice` % "test->test;compile->compile")
+  .dependsOn(`geolocation` % "test->test;compile->compile")
+
+lazy val `maxmind-geoip2db-guice` = (project in file("maxmind-geoip2db-guice"))
+  .settings(commonSettings)
+  .settings(libraryDependencies ++= Seq(
+  ))
+  .dependsOn(`maxmind-geoip2db`, `geolocation-guice` % "test->test;compile->compile")
 
 lazy val `javaSample` = (project in file("sample/java"))
   .enablePlugins(PlayMinimalJava)

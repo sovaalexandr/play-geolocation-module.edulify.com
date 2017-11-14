@@ -24,22 +24,39 @@ public class StandaloneAhcWSModule extends Module
   public Seq<Binding<?>> bindings(Environment environment, Configuration configuration) {
     return seq(
       // AsyncHttpClientProvider is added by the Scala API
-      bind(StandaloneWSClient.class).toProvider(StandaloneAhcWSModule.AhcWSClientProvider.class)
+      bind(StandaloneWSClient.class).toProvider(JavaAhcWSClientProvider.class),
+      bind(play.api.libs.ws.StandaloneWSClient.class).toProvider(ScalaAhcWSClientProvider.class)
     );
   }
 
   @Singleton
-  public static class AhcWSClientProvider implements Provider<StandaloneWSClient>
+  public static class JavaAhcWSClientProvider implements Provider<StandaloneWSClient>
   {
     private final StandaloneWSClient client;
 
     @Inject
-    public AhcWSClientProvider(AsyncHttpClient asyncHttpClient, Materializer materializer) {
+    public JavaAhcWSClientProvider(AsyncHttpClient asyncHttpClient, Materializer materializer) {
       client = new StandaloneAhcWSClient(asyncHttpClient, materializer);
     }
 
     @Override
     public StandaloneWSClient get() {
+      return client;
+    }
+  }
+
+  @Singleton
+  public static class ScalaAhcWSClientProvider implements Provider<play.api.libs.ws.StandaloneWSClient>
+  {
+    private final play.api.libs.ws.StandaloneWSClient client;
+
+    @Inject
+    public ScalaAhcWSClientProvider(AsyncHttpClient asyncHttpClient, Materializer materializer) {
+      client = new play.api.libs.ws.ahc.StandaloneAhcWSClient(asyncHttpClient, materializer);
+    }
+
+    @Override
+    public play.api.libs.ws.StandaloneWSClient get() {
       return client;
     }
   }
