@@ -64,7 +64,7 @@ val hamcrest = "org.hamcrest" % "hamcrest-core" % "1.3" % Test
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayMinimalJava)
-  .aggregate(geolocation, `geolocation-guice`, freegeoip, `freegeoip-guice`, `maxmind-geoip2web`, `maxmind-geoip2web-guice`, `javaSample`)
+  .aggregate(geolocation, `geolocation-guice`, freegeoip, `freegeoip-guice`, `maxmind-geoip2web`, `maxmind-geoip2web-guice`, `maxmind-geoip2db-guice`, `javaSample`)
   .settings(commonSettings, disablePublishing, disableDocs, name := "edulify-geolocation")
 
 lazy val geolocation = (project in file("geolocation"))
@@ -124,6 +124,13 @@ lazy val `maxmind-geoip2web-guice` = (project in file("maxmind-geoip2web-guice")
   ))
   .dependsOn(`maxmind-geoip2web`, `geolocation-guice` % "test->test;compile->compile")
 
+lazy val `maxmind-geoip2db-guice` = (project in file("maxmind-geoip2db-guice"))
+  .settings(commonSettings)
+  .settings(libraryDependencies ++= Seq(
+    "com.sovaalexandr" %% "maxmind-geoip2-async-guice" % "1.0.0-SNAPSHOT"
+  ))
+  .dependsOn(`geolocation-guice` % "test->test;compile->compile")
+
 lazy val `javaSample` = (project in file("sample/java"))
   .enablePlugins(PlayMinimalJava)
   .settings(routesGenerator := InjectedRoutesGenerator)
@@ -135,4 +142,4 @@ lazy val `javaSample` = (project in file("sample/java"))
   .settings(libraryDependencies ++= Seq(
     ehcache, ws
   ))
-  .dependsOn(`freegeoip-guice`)
+  .dependsOn(`maxmind-geoip2db-guice`)
