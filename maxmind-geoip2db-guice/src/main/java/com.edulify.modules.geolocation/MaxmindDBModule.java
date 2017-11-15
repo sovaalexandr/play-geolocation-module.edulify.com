@@ -22,7 +22,7 @@ public class MaxmindDBModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    install(new GeoIP2DBModule(environment.asScala(), config));
+    install(new GeoIP2DBModule(environment, config));
     install(new GeolocationModule(environment, config));
   }
 

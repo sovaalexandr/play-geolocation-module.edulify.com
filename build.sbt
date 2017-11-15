@@ -64,7 +64,7 @@ val hamcrest = "org.hamcrest" % "hamcrest-core" % "1.3" % Test
 
 lazy val root = (project in file("."))
   .enablePlugins(PlayMinimalJava)
-  .aggregate(geolocation, `geolocation-guice`, freegeoip, `freegeoip-guice`, `maxmind-geoip2web`, `maxmind-geoip2web-guice`, `maxmind-geoip2db-guice`, `javaSample`)
+  .aggregate(geolocation, `geolocation-guice`, freegeoip, `freegeoip-guice`, `maxmind-geoip2web`, `maxmind-geoip2web-guice`, `maxmind-geoip2db`, `maxmind-geoip2db-guice`, `javaSample`)
   .settings(commonSettings, disablePublishing, disableDocs, name := "edulify-geolocation")
 
 lazy val geolocation = (project in file("geolocation"))
