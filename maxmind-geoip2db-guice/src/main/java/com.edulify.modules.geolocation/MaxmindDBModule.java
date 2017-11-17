@@ -3,7 +3,6 @@ package com.edulify.modules.geolocation;
 import akka.actor.ActorRef;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.sovaalexandr.maxmind.geoip2.GeoIP2DBModule;
 import com.typesafe.config.Config;
 import play.Environment;
 
@@ -22,7 +21,6 @@ public class MaxmindDBModule extends AbstractModule {
 
   @Override
   protected void configure() {
-    install(new GeoIP2DBModule(environment, config));
     install(new GeolocationModule(environment, config));
   }
 
