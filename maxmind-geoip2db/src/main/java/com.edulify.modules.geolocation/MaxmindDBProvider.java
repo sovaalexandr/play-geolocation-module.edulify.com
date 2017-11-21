@@ -3,15 +3,16 @@ package com.edulify.modules.geolocation;
 import akka.actor.ActorRef;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.record.Country;
+import com.sovaalexandr.maxmind.geoip2.AddressNotFound;
 import com.sovaalexandr.maxmind.geoip2.City;
+import com.sovaalexandr.maxmind.geoip2.Idle;
 
 import java.net.InetAddress;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-import static akka.pattern.Patterns.ask;
+import static akka.pattern.PatternsCS.ask;
 import static java.util.Optional.ofNullable;
-import static scala.compat.java8.FutureConverters.toJava;
 
 public class MaxmindDBProvider implements GeolocationProvider
 {
@@ -26,7 +27,7 @@ public class MaxmindDBProvider implements GeolocationProvider
   public CompletionStage<Geolocation> get(String ip)
   {
     try {
-      return toJava(ask(geolocation, City.apply(InetAddress.getByName(ip)), 5000L))
+      return ask(geolocation, City.apply(InetAddress.getByName(ip)), 5000L)
         .thenApply(this::toCityResponse)
         .thenApply(city -> asGeolocation(city, ip));
     } catch (Throwable e) {
@@ -37,11 +38,14 @@ public class MaxmindDBProvider implements GeolocationProvider
   }
 
   private CityResponse toCityResponse(Object response) {
-    try {
+    if (response instanceof CityResponse) {
       return (CityResponse)response;
-    } catch (ClassCastException e) {
-      throw new RuntimeException(e);
+    } if (response instanceof AddressNotFound) {
+      return null;
+    } if (response instanceof Idle) {
+      return null;
     }
+    return null;
   }
 
   private Geolocation asGeolocation(CityResponse response, String ip) {
