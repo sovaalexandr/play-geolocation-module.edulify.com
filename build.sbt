@@ -127,7 +127,7 @@ lazy val `maxmind-geoip2web-guice` = (project in file("maxmind-geoip2web-guice")
 lazy val `maxmind-geoip2db` = (project in file("maxmind-geoip2db"))
   .settings(commonSettings)
   .settings(libraryDependencies ++= Seq(
-    "com.sovaalexandr" %% "maxmind-geoip2-async-guice" % "1.0.0-SNAPSHOT"
+    "com.github.sovaalexandr" %% "maxmind-geoip2-async-guice" % "1.0.0"
   ))
   .dependsOn(`geolocation` % "test->test;compile->compile")
 
